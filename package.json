@@ -1,0 +1,19 @@
+{
+  "name": "naveen-portfolio",
+  "version": "1.0.0",
+  "description": "Portfolio site for Naveen Kumar - Junior DevOps Engineer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "express": "^4.19.0",
+    "nodemailer": "^8.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
