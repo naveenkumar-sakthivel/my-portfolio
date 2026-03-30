@@ -1,7 +1,10 @@
 replicaCount: 1
 
+name: portfolio
+
 image:
   repository: snaveenkumar0601/portfolio
+  tag: latest
   pullPolicy: IfNotPresent
 
 service:
