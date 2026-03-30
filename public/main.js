@@ -78,7 +78,7 @@ if (terminalBody && terminalInput) {
     ],
     whoami: () => [
       "naveen",
-      "Naveen Kumar – Junior DevOps Engineer (Chennai, India).",
+      "Naveen Kumar â€“ Junior DevOps Engineer (Chennai, India).",
       "I design and automate cloud-native infrastructure on Azure and AWS with Kubernetes, CI/CD and observability."
     ],
     skills: () => [
