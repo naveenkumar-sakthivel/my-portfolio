@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "naveen-portfolio.fullname" . }}
+  name: {{ .Values.name }}
   labels:
-    app: {{ include "naveen-portfolio.name" . }}
+    app: {{ .Values.name }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "naveen-portfolio.name" . }}
+      app: {{ .Values.name }}
   template:
     metadata:
       labels:
-        app: {{ include "naveen-portfolio.name" . }}
+        app: {{ .Values.name }}
     spec:
       containers:
-        - name: {{ include "naveen-portfolio.name" . }}
+        - name: {{ .Values.name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
@@ -26,12 +26,12 @@ spec:
             - name: MAIL_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "naveen-portfolio.fullname" . }}-secret
+                  name: {{ .Values.name }}-secret
                   key: MAIL_USER
             - name: MAIL_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "naveen-portfolio.fullname" . }}-secret
+                  name: {{ .Values.name }}-secret
                   key: MAIL_PASS
           resources:
 {{ toYaml .Values.resources | indent 12 }}
