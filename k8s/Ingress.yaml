@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: <IngressName>
+  namespace: <namespace-name>
+  annotations:
+    # Traefik: HTTPS only
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    
+    # Auto TLS from Certificate
+    cert-manager.io/cluster-issuer: letsencrypt-prod  # Fallback
+    
+    # HTTP → HTTPS redirect (optional)
+    traefik.ingress.kubernetes.io/router.middlewares: default-redirect@kubernetes
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - <your-domain> # CHANGE!
+    secretName: <certificate-secret>  # Matches Certificate
+  rules:
+  - host: <your-domain>  # CHANGE!
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: <service-name> 
+            port:
+              number: <port>
