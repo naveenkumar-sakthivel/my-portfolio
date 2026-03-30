@@ -1,0 +1,35 @@
+replicaCount: 1
+
+image:
+  repository: snaveenkumar0601/portfolio
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+containerPort: 3000
+
+env:
+  PORT: "3000"
+
+secret:
+  MAIL_USER: yourgmail@gmail.com
+  MAIL_PASS: your_gmail_app_password
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  host: portfolio.yourdomain.com
+  path: /
+  pathType: Prefix
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
