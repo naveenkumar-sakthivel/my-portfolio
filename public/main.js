@@ -27,32 +27,54 @@ document.addEventListener("mousemove", (e) => {
 
 // Contact form
 const form = document.getElementById("contact-form");
+const statusEl = document.getElementById("contact-status");
+const submitBtn = document.getElementById("contact-submit");
+
 if (form) {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const status = document.getElementById("contact-status");
-    status.textContent = "Sending...";
 
-    const data = Object.fromEntries(new FormData(form));
+    const payload = {
+      name: form.name.value.trim(),
+      email: form.email.value.trim(),
+      subject: form.subject.value.trim(),
+      message: form.message.value.trim()
+    };
+
+    if (!payload.name || !payload.email || !payload.message) {
+      statusEl.textContent = "Please fill in name, email, and message.";
+      statusEl.className = "contact-status error";
+      return;
+    }
+
+    submitBtn.disabled = true;
+    statusEl.textContent = "Sending...";
+    statusEl.className = "contact-status";
 
     try {
-      const res = await fetch("/api/contact", {
+      const response = await fetch("/api/contact", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       });
 
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.message || "Failed");
+      const data = await response.json();
 
-      status.textContent = "Message sent successfully.";
+      if (!response.ok) throw new Error(data.message || "Failed to send message.");
+
+      statusEl.textContent = data.message;
+      statusEl.className = "contact-status success";
       form.reset();
-    } catch (err) {
-      status.textContent = "Something went wrong. Please try again.";
+    } catch (error) {
+      statusEl.textContent = error.message || "Something went wrong.";
+      statusEl.className = "contact-status error";
+    } finally {
+      submitBtn.disabled = false;
     }
   });
 }
-
 // Terminal simulation
 const terminalBody = document.getElementById("terminal-body");
 const terminalInput = document.getElementById("terminal-input");
