@@ -21,7 +21,7 @@
         <p class="location">Chennai, India</p>
 
         <div class="hero-links">
-          <a href="mailto:snaveenkumar0601@gmail.com">Email</a>
+          <a href="/cdn-cgi/l/email-protection#1b68757a6d7e7e75706e767a692b2d2b2a5b7c767a727735787476">Email</a>
           <a href="tel:+919360799352">Phone</a>
           <a href="https://www.linkedin.com/in/naveenkumarsakthivel" target="_blank" rel="noopener noreferrer">LinkedIn</a>
           <a href="https://github.com/naveenkumar-sakthivel" target="_blank" rel="noopener noreferrer">GitHub</a>
@@ -133,42 +133,91 @@
 
     <section id="blog" class="section card">
       <div class="section-heading-row">
-        <h2>Blog</h2>
-        <p class="section-kicker">Notes from Kubernetes, Azure, platform engineering, and security work.</p>
+        <div>
+          <h2>Blog</h2>
+          <p class="section-kicker">Notes from Kubernetes, Azure, platform engineering, and security work.</p>
+        </div>
+        <span class="blog-count">4 posts</span>
       </div>
 
       <div class="blog-grid">
-        <article class="blog-card">
-          <span class="blog-tag">Kubernetes</span>
-          <p class="blog-date">March 2026</p>
+
+        <article class="blog-card blog-card--featured">
+          <div class="blog-card-meta">
+            <span class="blog-tag blog-tag--kubernetes">Kubernetes</span>
+            <time class="blog-date">March 2026</time>
+          </div>
           <h3>Zero-Downtime AKS Upgrades with GitHub Actions</h3>
           <p>How to automate safe AKS version upgrades, validate workloads, and reduce downtime during scheduled maintenance.</p>
-          <a href="#contact">Read more →</a>
+          <div class="blog-card-actions">
+            <a href="./blog/aks-upgrades.html" class="blog-read-more">
+              Read article
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M2 6.5H11M7 2.5L11 6.5L7 10.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a href="https://github.com/naveenkumar-sakthivel/aks-zero-downtime-upgrades" target="_blank" rel="noopener noreferrer" class="blog-github-link">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+              GitHub
+            </a>
+          </div>
         </article>
 
         <article class="blog-card">
-          <span class="blog-tag">Observability</span>
-          <p class="blog-date">February 2026</p>
+          <div class="blog-card-meta">
+            <span class="blog-tag blog-tag--observability">Observability</span>
+            <time class="blog-date">February 2026</time>
+          </div>
           <h3>Building a SIEM on AKS with ECK</h3>
           <p>A practical overview of centralizing security logs with Elasticsearch, Kibana, and Beats on Azure Kubernetes Service.</p>
-          <a href="#contact">Read more →</a>
+          <div class="blog-card-actions">
+            <a href="./blog/siem-aks-eck.html" class="blog-read-more">
+              Read article
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M2 6.5H11M7 2.5L11 6.5L7 10.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a href="https://github.com/naveenkumar-sakthivel/siem-aks-eck" target="_blank" rel="noopener noreferrer" class="blog-github-link">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+              GitHub
+            </a>
+          </div>
         </article>
 
         <article class="blog-card">
-          <span class="blog-tag">Terraform</span>
-          <p class="blog-date">January 2026</p>
+          <div class="blog-card-meta">
+            <span class="blog-tag blog-tag--terraform">Terraform</span>
+            <time class="blog-date">January 2026</time>
+          </div>
           <h3>Reusable Terraform Modules for Multi-Environment Azure</h3>
           <p>Patterns for building clean Terraform modules that support dev, staging, and production without copy-paste drift.</p>
-          <a href="#contact">Read more →</a>
+          <div class="blog-card-actions">
+            <a href="./blog/terraform-modules-azure.html" class="blog-read-more">
+              Read article
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M2 6.5H11M7 2.5L11 6.5L7 10.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a href="https://github.com/naveenkumar-sakthivel/terraform-azure-modules" target="_blank" rel="noopener noreferrer" class="blog-github-link">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+              GitHub
+            </a>
+          </div>
         </article>
 
         <article class="blog-card">
-          <span class="blog-tag">Security</span>
-          <p class="blog-date">December 2025</p>
+          <div class="blog-card-meta">
+            <span class="blog-tag blog-tag--security">Security</span>
+            <time class="blog-date">December 2025</time>
+          </div>
           <h3>Traefik + Coraza WAF for Kubernetes Ingress Security</h3>
           <p>Lessons from securing ingress traffic with modern WAF controls, TLS automation, and production-friendly routing.</p>
-          <a href="#contact">Read more →</a>
+          <div class="blog-card-actions">
+            <a href="./blog/traefik-coraza-waf.html" class="blog-read-more">
+              Read article
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M2 6.5H11M7 2.5L11 6.5L7 10.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a href="https://github.com/naveenkumar-sakthivel/traefik-coraza-k8s" target="_blank" rel="noopener noreferrer" class="blog-github-link">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+              GitHub
+            </a>
+          </div>
         </article>
+
       </div>
     </section>
 
@@ -226,6 +275,5 @@
   </main>
 
   <script src="./main.js" defer></script>
-
 </body>
 </html>
