@@ -249,7 +249,6 @@ body {
 }
 
 /* ========== Contact ========== */
-/* ========== Contact ========== */
 .contact-section {
   padding: 0;
 }
@@ -526,91 +525,97 @@ body {
   }
 }
 
-/* Phones (portrait) */
+/* ========== Mobile only hero fixes ========== */
 @media (max-width: 640px) {
-  .page {
-    padding: 24px 10px 40px;
+  .hero.center {
+    padding-top: 12px;
+    padding-bottom: 8px;
   }
 
-  .section {
-    margin-bottom: 22px;
+  .hero-inner {
+    padding: 20px 14px;
+    border-radius: 16px;
   }
 
-  .hero-inner,
-  .card {
-    padding: 20px 16px;
+  /* top skills line */
+  .hero-topline {
+    font-size: 0.76rem;
+    line-height: 1.45;
+    margin-bottom: 8px;
+    color: #b8becc;
+    letter-spacing: 0.03em;
   }
 
   .hero h1 {
     font-size: 1.9rem;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.08em;
+    line-height: 1.08;
   }
 
   .hero h2 {
-    font-size: 0.95rem;
-    letter-spacing: 0.18em;
+    margin-top: 8px;
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
   }
 
   .location {
+    margin-top: 6px;
     font-size: 0.82rem;
   }
 
   .hero-links {
-    gap: 8px;
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
 
   .hero-links a {
-    padding: 7px 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 10px;
+    justify-content: center;
+    font-size: 0.74rem;
+    letter-spacing: 0.05em;
+    border-radius: 12px;
+  }
+
+  .hero-links a.blog-btn {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-inner {
+    padding: 18px 12px;
+  }
+
+  .hero-topline {
+    font-size: 0.72rem;
+  }
+
+  .hero h1 {
+    font-size: 1.65rem;
+    letter-spacing: 0.06em;
+  }
+
+  .hero h2 {
+    font-size: 0.76rem;
+    letter-spacing: 0.1em;
+  }
+
+  .location {
     font-size: 0.78rem;
   }
 
-  .project-block ul {
-    margin-left: 14px;
+  .hero-links {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
-  .terminal-body {
-    max-height: 260px;
-  }
-}
-
-/* Very small phones */
-@media (max-width: 480px) {
-  .hero h1 {
-    font-size: 1.7rem;
-    letter-spacing: 0.14em;
-  }
-
-  .hero-inner,
-  .card {
-    padding: 18px 14px;
-  }
-
-  .skills-group p,
-  .project-block li,
-  .contact-info p {
-    font-size: 0.85rem;
-  }
-
-  .contact-form input,
-  .contact-form textarea {
-    font-size: 0.85rem;
-    padding: 8px 10px;
-  }
-
-  .terminal-body {
-    max-height: 220px;
-  }
-}
-
-@media (max-width: 640px) {
-  .hero-links a {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .contact-info a {
-    width: 100%;
-    justify-content: center;
+  .hero-links a,
+  .hero-links a.blog-btn {
+    grid-column: auto;
   }
 }
 
