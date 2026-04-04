@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reusable Terraform Modules for Multi-Environment Azure | Naveen Kumar</title>
+  <link rel="preconnect" href="https://api.fontshare.com" />
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="bg-animation"></div>
+  <main class="article-page">
+
+    <a href="../index.html" class="article-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3M7 3L3 7L7 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to portfolio
+    </a>
+
+    <header class="article-header">
+      <div class="article-header-meta">
+        <span class="blog-tag blog-tag--terraform">Terraform</span>
+        <time class="blog-date">January 2026</time>
+      </div>
+      <h1 class="article-title">Reusable Terraform Modules for Multi-Environment Azure</h1>
+      <p class="article-subtitle">Patterns for building clean Terraform modules that support dev, staging, and production without copy-paste drift.</p>
+      <a href="https://github.com/naveenkumar-sakthivel/terraform-azure-modules" target="_blank" rel="noopener noreferrer" class="article-github-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        View on GitHub
+      </a>
+    </header>
+
+    <article class="article-body">
+
+      <h2>The Problem with Copy-Paste Terraform</h2>
+      <p>When you manage Azure infrastructure across dev, staging, and production, the temptation is to duplicate your Terraform files and tweak values. This works fine until you need to update something — then you're making the same change three times, and eventually the environments drift apart silently.</p>
+      <p>The solution is a proper module structure with environment-specific variable files. Here's the pattern I use.</p>
+
+      <h2>Repository Layout</h2>
+      <pre><code>terraform-azure/
+├── modules/
+│   ├── aks/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+│   ├── vnet/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+│   └── keyvault/
+│       ├── main.tf
+│       ├── variables.tf
+│       └── outputs.tf
+├── environments/
+│   ├── dev/
+│   │   ├── main.tf
+│   │   └── terraform.tfvars
+│   ├── staging/
+│   │   ├── main.tf
+│   │   └── terraform.tfvars
+│   └── prod/
+│       ├── main.tf
+│       └── terraform.tfvars
+└── backend.tf</code></pre>
+
+      <h2>The AKS Module</h2>
+      <p>Each module exposes only what needs to vary between environments. Everything else — sensible defaults, tagging conventions, diagnostic settings — is baked in.</p>
+
+      <pre><code># modules/aks/variables.tf
+variable "cluster_name"       { type = string }
+variable "resource_group"     { type = string }
+variable "location"           { type = string }
+variable "kubernetes_version" { type = string }
+variable "node_count"         { type = number; default = 2 }
+variable "node_vm_size"       { type = string; default = "Standard_D2s_v3" }
+variable "environment"        { type = string }
+variable "vnet_subnet_id"     { type = string }
+variable "log_analytics_id"   { type = string }</code></pre>
+
+      <pre><code># modules/aks/main.tf
+resource "azurerm_kubernetes_cluster" "this" {
+  name                = var.cluster_name
+  location            = var.location
+  resource_group_name = var.resource_group
+  kubernetes_version  = var.kubernetes_version
+  dns_prefix          = var.cluster_name
+
+  default_node_pool {
+    name           = "system"
+    node_count     = var.node_count
+    vm_size        = var.node_vm_size
+    vnet_subnet_id = var.vnet_subnet_id
+  }
+
+  identity { type = "SystemAssigned" }
+
+  oms_agent {
+    log_analytics_workspace_id = var.log_analytics_id
+  }
+
+  tags = {
+    environment = var.environment
+    managed_by  = "terraform"
+  }
+}</code></pre>
+
+      <h2>Environment Composition</h2>
+      <p>Each environment <code>main.tf</code> simply calls the modules with its own values. No logic lives here — just wiring.</p>
+
+      <pre><code># environments/prod/main.tf
+module "vnet" {
+  source         = "../../modules/vnet"
+  name           = "vnet-prod"
+  resource_group = azurerm_resource_group.this.name
+  address_space  = ["10.1.0.0/16"]
+  environment    = "prod"
+}
+
+module "aks" {
+  source             = "../../modules/aks"
+  cluster_name       = "aks-prod"
+  resource_group     = azurerm_resource_group.this.name
+  location           = var.location
+  kubernetes_version = "1.29"
+  node_count         = 5
+  node_vm_size       = "Standard_D4s_v3"
+  vnet_subnet_id     = module.vnet.aks_subnet_id
+  log_analytics_id   = module.monitoring.workspace_id
+  environment        = "prod"
+}</code></pre>
+
+      <h2>Remote State with Azure Storage</h2>
+      <p>Each environment has its own state file in Azure Blob Storage, isolated by container. This prevents accidental cross-environment state corruption.</p>
+
+      <pre><code>terraform {
+  backend "azurerm" {
+    resource_group_name  = "rg-terraform-state"
+    storage_account_name = "tfstatenaveen"
+    container_name       = "prod"
+    key                  = "prod.terraform.tfstate"
+  }
+}</code></pre>
+
+      <h2>CI/CD Integration</h2>
+      <p>GitHub Actions handles plan and apply. PRs trigger <code>terraform plan</code> with the output posted as a comment. Merges to <code>main</code> trigger <code>terraform apply</code> automatically after a required approval.</p>
+
+      <blockquote>
+        The discipline of keeping all logic inside modules and keeping environment files as pure composition is what prevents drift. If you're writing an <code>if</code> statement in an environment file, something has gone wrong.
+      </blockquote>
+
+      <h2>Key Takeaways</h2>
+      <ul>
+        <li>Modules own defaults and sensible conventions — environments just pass values</li>
+        <li>Separate state per environment is non-negotiable for safety</li>
+        <li>Tag every resource with <code>environment</code> and <code>managed_by = "terraform"</code> from day one</li>
+        <li>Version-pin your provider and module sources to avoid surprise upgrades</li>
+      </ul>
+
+    </article>
+
+    <footer class="article-footer">
+      <a href="../index.html" class="article-footer-back">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3M7 3L3 7L7 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back to portfolio
+      </a>
+      <a href="https://github.com/naveenkumar-sakthivel/terraform-azure-modules" target="_blank" rel="noopener noreferrer" class="article-github-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        View on GitHub
+      </a>
+    </footer>
+
+  </main>
+  <script src="../main.js" defer></script>
+</body>
+</html>

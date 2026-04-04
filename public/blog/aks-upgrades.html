@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zero-Downtime AKS Upgrades with GitHub Actions | Naveen Kumar</title>
+  <link rel="preconnect" href="https://api.fontshare.com" />
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="bg-animation"></div>
+  <main class="article-page">
+
+    <a href="../index.html" class="article-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3M7 3L3 7L7 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to portfolio
+    </a>
+
+    <header class="article-header">
+      <div class="article-header-meta">
+        <span class="blog-tag blog-tag--kubernetes">Kubernetes</span>
+        <time class="blog-date">March 2026</time>
+      </div>
+      <h1 class="article-title">Zero-Downtime AKS Upgrades with GitHub Actions</h1>
+      <p class="article-subtitle">How to automate safe AKS version upgrades, validate workloads, and reduce downtime during scheduled maintenance.</p>
+      <a href="https://github.com/naveenkumar-sakthivel/aks-zero-downtime-upgrades" target="_blank" rel="noopener noreferrer" class="article-github-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        View on GitHub
+      </a>
+    </header>
+
+    <article class="article-body">
+
+      <h2>Overview</h2>
+      <p>AKS upgrades can be risky if done manually — a wrong sequence, missing a node pool, or skipping workload validation can cause real downtime. This post walks through the GitHub Actions pipeline I built at Awan Infotech to handle AKS version upgrades safely and repeatably.</p>
+
+      <h2>The Problem</h2>
+      <p>When you manage multiple AKS clusters across environments, keeping Kubernetes versions current is non-trivial. Microsoft drops support for old minor versions, and manual upgrades are error-prone — especially when you have stateful workloads, Persistent Volumes, and custom ingress configurations.</p>
+      <p>The goals for this automation were:</p>
+      <ul>
+        <li>Upgrade the control plane first, then node pools in order</li>
+        <li>Validate all Pods are healthy before proceeding</li>
+        <li>Send Teams notifications at every stage</li>
+        <li>Support rollback if validation fails</li>
+      </ul>
+
+      <h2>Pipeline Structure</h2>
+      <p>The workflow is split into three jobs: <code>pre-check</code>, <code>upgrade</code>, and <code>validate</code>.</p>
+
+      <pre><code>name: AKS Zero-Downtime Upgrade
+
+on:
+  workflow_dispatch:
+    inputs:
+      cluster_name:
+        required: true
+      resource_group:
+        required: true
+      target_version:
+        required: true
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Check current version
+        run: |
+          az aks show \
+            --name ${{ inputs.cluster_name }} \
+            --resource-group ${{ inputs.resource_group }} \
+            --query kubernetesVersion -o tsv</code></pre>
+
+      <h2>Control Plane Upgrade</h2>
+      <p>The control plane upgrade runs first. Azure handles this gracefully — the API server is temporarily unavailable during the upgrade window, but running workloads are unaffected.</p>
+
+      <pre><code>      - name: Upgrade control plane
+        run: |
+          az aks upgrade \
+            --name ${{ inputs.cluster_name }} \
+            --resource-group ${{ inputs.resource_group }} \
+            --kubernetes-version ${{ inputs.target_version }} \
+            --control-plane-only \
+            --yes</code></pre>
+
+      <h2>Node Pool Upgrade with Surge</h2>
+      <p>Node pools are upgraded next using a max-surge setting of 1. This ensures one extra node is provisioned before an old node is drained, keeping capacity stable throughout.</p>
+
+      <pre><code>      - name: Upgrade node pools
+        run: |
+          POOLS=$(az aks nodepool list \
+            --cluster-name ${{ inputs.cluster_name }} \
+            --resource-group ${{ inputs.resource_group }} \
+            --query "[].name" -o tsv)
+
+          for pool in $POOLS; do
+            az aks nodepool upgrade \
+              --cluster-name ${{ inputs.cluster_name }} \
+              --resource-group ${{ inputs.resource_group }} \
+              --name $pool \
+              --kubernetes-version ${{ inputs.target_version }} \
+              --max-surge 1 \
+              --no-wait
+          done</code></pre>
+
+      <h2>Workload Validation</h2>
+      <p>After the upgrade, the pipeline waits for all Deployments and StatefulSets to report healthy before marking the run as successful.</p>
+
+      <pre><code>  validate:
+    needs: upgrade
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          cluster-name: ${{ inputs.cluster_name }}
+          resource-group: ${{ inputs.resource_group }}
+
+      - name: Check all pods running
+        run: |
+          kubectl wait --for=condition=available \
+            deployment --all \
+            --namespace default \
+            --timeout=300s</code></pre>
+
+      <h2>Results</h2>
+      <p>After deploying this pipeline across our AKS clusters, we reduced upgrade-related incidents to zero over three upgrade cycles. The automated validation step caught one case where a Deployment failed to roll out after a node pool upgrade — the pipeline halted and alerted the team before users were affected.</p>
+
+      <blockquote>
+        The key insight: treat AKS upgrades the same as application deployments — automate, validate, and have a clear rollback path.
+      </blockquote>
+
+      <h2>Next Steps</h2>
+      <ul>
+        <li>Add Prometheus-based health checks (not just <code>kubectl wait</code>)</li>
+        <li>Integrate with Azure Policy to block deploys if version is out of support</li>
+        <li>Add multi-cluster fan-out for upgrading staging before production automatically</li>
+      </ul>
+
+    </article>
+
+    <footer class="article-footer">
+      <a href="../index.html" class="article-footer-back">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3M7 3L3 7L7 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back to portfolio
+      </a>
+      <a href="https://github.com/naveenkumar-sakthivel/aks-zero-downtime-upgrades" target="_blank" rel="noopener noreferrer" class="article-github-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        View on GitHub
+      </a>
+    </footer>
+
+  </main>
+  <script src="../main.js" defer></script>
+</body>
+</html>

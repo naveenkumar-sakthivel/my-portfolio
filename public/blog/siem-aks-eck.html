@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Building a SIEM on AKS with ECK | Naveen Kumar</title>
+  <link rel="preconnect" href="https://api.fontshare.com" />
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="bg-animation"></div>
+  <main class="article-page">
+
+    <a href="../index.html" class="article-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3M7 3L3 7L7 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to portfolio
+    </a>
+
+    <header class="article-header">
+      <div class="article-header-meta">
+        <span class="blog-tag blog-tag--observability">Observability</span>
+        <time class="blog-date">February 2026</time>
+      </div>
+      <h1 class="article-title">Building a SIEM on AKS with ECK</h1>
+      <p class="article-subtitle">A practical overview of centralizing security logs with Elasticsearch, Kibana, and Beats on Azure Kubernetes Service.</p>
+      <a href="https://github.com/naveenkumar-sakthivel/siem-aks-eck" target="_blank" rel="noopener noreferrer" class="article-github-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        View on GitHub
+      </a>
+    </header>
+
+    <article class="article-body">
+
+      <h2>Overview</h2>
+      <p>The SIEMply Secure project at Awan Infotech required a centralized platform to collect and correlate logs from biometric systems, CCTV infrastructure, and enterprise applications. We chose ECK (Elastic Cloud on Kubernetes) on AKS as the foundation — giving us operator-managed Elasticsearch and Kibana with native Kubernetes lifecycle management.</p>
+
+      <h2>Architecture</h2>
+      <p>The platform runs entirely inside a dedicated AKS namespace with the following components:</p>
+      <ul>
+        <li><strong>ECK Operator</strong> — manages Elasticsearch and Kibana CRDs</li>
+        <li><strong>Elasticsearch</strong> (3-node cluster) — stores and indexes all ingested logs</li>
+        <li><strong>Kibana</strong> — dashboards, alerting, and SIEM app</li>
+        <li><strong>Filebeat + Winlogbeat</strong> — log shippers on Linux and Windows sources</li>
+        <li><strong>Traefik Ingress</strong> — TLS termination for Kibana with cert-manager</li>
+      </ul>
+
+      <h2>Deploying ECK</h2>
+      <p>ECK is deployed via the official Elastic Helm chart. The operator watches for <code>Elasticsearch</code> and <code>Kibana</code> custom resources and handles rolling upgrades, TLS certificate rotation, and resource scaling automatically.</p>
+
+      <pre><code>helm repo add elastic https://helm.elastic.co
+helm install elastic-operator elastic/eck-operator \
+  --namespace elastic-system \
+  --create-namespace</code></pre>
+
+      <h2>Elasticsearch Cluster Manifest</h2>
+      <p>We defined a 3-node Elasticsearch cluster with persistent storage backed by Azure Managed Disks:</p>
+
+      <pre><code>apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: siem-es
+  namespace: siem
+spec:
+  version: 8.12.0
+  nodeSets:
+    - name: default
+      count: 3
+      config:
+        node.store.allow_mmap: false
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes: [ReadWriteOnce]
+            storageClassName: managed-premium
+            resources:
+              requests:
+                storage: 100Gi</code></pre>
+
+      <h2>Securing Kibana with Traefik + cert-manager</h2>
+      <p>Kibana is exposed through Traefik Ingress with a Let's Encrypt certificate managed by cert-manager. This means TLS renewal is fully automated — no manual certificate rotation needed.</p>
+
+      <pre><code>apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kibana-ingress
+  namespace: siem
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  tls:
+    - hosts: [kibana.internal.example.com]
+      secretName: kibana-tls
+  rules:
+    - host: kibana.internal.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: siem-es-kb-http
+                port:
+                  number: 5601</code></pre>
+
+      <h2>Log Ingestion</h2>
+      <p>Filebeat runs as a DaemonSet on all Linux nodes, shipping container logs and audit logs to Elasticsearch. Winlogbeat agents on Windows sources (CCTV and biometric servers) ship Windows Event Logs over TLS.</p>
+
+      <h2>Key Outcomes</h2>
+      <ul>
+        <li>Centralized logs from 200+ sources into a single queryable platform</li>
+        <li>Reduced mean time to detect (MTTD) security incidents from hours to minutes</li>
+        <li>Automated TLS — no manual certificate work since deployment</li>
+        <li>ECK operator handles Elasticsearch rolling upgrades without manual intervention</li>
+      </ul>
+
+      <blockquote>
+        ECK on Kubernetes is significantly easier to operate than self-managed Elasticsearch. The operator handles the hard parts — TLS, rolling upgrades, and node coordination — so you can focus on the data.
+      </blockquote>
+
+    </article>
+
+    <footer class="article-footer">
+      <a href="../index.html" class="article-footer-back">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3M7 3L3 7L7 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back to portfolio
+      </a>
+      <a href="https://github.com/naveenkumar-sakthivel/siem-aks-eck" target="_blank" rel="noopener noreferrer" class="article-github-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        View on GitHub
+      </a>
+    </footer>
+
+  </main>
+  <script src="../main.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Traefik + Coraza WAF for Kubernetes Ingress Security | Naveen Kumar</title>
+  <link rel="preconnect" href="https://api.fontshare.com" />
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="bg-animation"></div>
+  <main class="article-page">
+
+    <a href="../index.html" class="article-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3M7 3L3 7L7 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to portfolio
+    </a>
+
+    <header class="article-header">
+      <div class="article-header-meta">
+        <span class="blog-tag blog-tag--security">Security</span>
+        <time class="blog-date">December 2025</time>
+      </div>
+      <h1 class="article-title">Traefik + Coraza WAF for Kubernetes Ingress Security</h1>
+      <p class="article-subtitle">Lessons from securing ingress traffic with modern WAF controls, TLS automation, and production-friendly routing.</p>
+      <a href="https://github.com/naveenkumar-sakthivel/traefik-coraza-k8s" target="_blank" rel="noopener noreferrer" class="article-github-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        View on GitHub
+      </a>
+    </header>
+
+    <article class="article-body">
+
+      <h2>Why a WAF at the Ingress Layer?</h2>
+      <p>Kubernetes Ingress controllers handle routing, but they don't inspect HTTP payloads for attacks like SQL injection, XSS, or path traversal. Adding a Web Application Firewall (WAF) at the ingress layer — before traffic reaches your services — gives you a centralized chokepoint for threat detection and blocking.</p>
+      <p>Traefik v3 supports Coraza as a middleware plugin. Coraza is an open-source WAF engine that runs the OWASP Core Rule Set (CRS). The combination is entirely self-hosted, zero-licensing-cost, and runs natively inside your cluster.</p>
+
+      <h2>Installation</h2>
+      <p>We use the Traefik Helm chart with the Coraza plugin enabled at install time:</p>
+
+      <pre><code>helm repo add traefik https://traefik.github.io/charts
+helm install traefik traefik/traefik \
+  --namespace traefik \
+  --create-namespace \
+  --set "experimental.plugins.coraza.moduleName=github.com/jcchavezs/coraza-middleware-traefik" \
+  --set "experimental.plugins.coraza.version=v0.2.1"</code></pre>
+
+      <h2>cert-manager for TLS</h2>
+      <p>cert-manager handles all TLS certificate provisioning and renewal via Let's Encrypt. A single <code>ClusterIssuer</code> covers all namespaces:</p>
+
+      <pre><code>apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: snaveenkumar0601@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+      - http01:
+          ingress:
+            class: traefik</code></pre>
+
+      <h2>Coraza WAF Middleware</h2>
+      <p>The Coraza middleware is defined as a Traefik <code>Middleware</code> resource. It loads the OWASP CRS rules and runs in detection mode first — you can switch to blocking mode once you've tuned the false positive rate.</p>
+
+      <pre><code>apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: coraza-waf
+  namespace: traefik
+spec:
+  plugin:
+    coraza:
+      directives: |
+        SecRuleEngine DetectionOnly
+        SecRequestBodyAccess On
+        SecResponseBodyAccess On
+        Include @owasp_crs/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf
+        Include @owasp_crs/REQUEST-901-INITIALIZATION.conf
+        Include @owasp_crs/REQUEST-942-APPLICATION-ATTACK-SQLI.conf
+        Include @owasp_crs/REQUEST-941-APPLICATION-ATTACK-XSS.conf
+        Include @owasp_crs/REQUEST-932-APPLICATION-ATTACK-RCE.conf
+        SecAuditLog /dev/stdout
+        SecAuditLogFormat JSON</code></pre>
+
+      <h2>Attaching WAF to Ingress</h2>
+      <p>Apply the middleware to any Ingress via annotation:</p>
+
+      <pre><code>apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-coraza-waf@kubernetescrd
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  tls:
+    - hosts: [app.example.com]
+      secretName: app-tls
+  rules:
+    - host: app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-service
+                port:
+                  number: 80</code></pre>
+
+      <h2>Tuning and False Positives</h2>
+      <p>Running CRS out of the box in blocking mode will almost certainly cause false positives — especially for APIs that send JSON bodies. The recommended workflow:</p>
+      <ol>
+        <li>Start with <code>SecRuleEngine DetectionOnly</code> and monitor audit logs</li>
+        <li>Identify false positive rule IDs from Kibana or log queries</li>
+        <li>Add targeted exclusions for known-safe patterns</li>
+        <li>Switch to <code>SecRuleEngine On</code> once false positive rate is acceptable</li>
+      </ol>
+
+      <h2>Results</h2>
+      <p>After deploying this stack on the SIEMply Secure platform, we had full TLS automation across all services and WAF coverage on all externally-facing ingress routes. The Coraza audit logs (JSON format, shipped to Elasticsearch via Filebeat) gave us complete visibility into blocked and detected requests.</p>
+
+      <blockquote>
+        Running a WAF in detection mode for two weeks before enabling blocking is not optional — it's how you avoid breaking your own platform on day one.
+      </blockquote>
+
+      <h2>Key Takeaways</h2>
+      <ul>
+        <li>Traefik + Coraza is a fully open-source WAF stack — no licensing overhead</li>
+        <li>cert-manager + Let's Encrypt eliminates all manual TLS work</li>
+        <li>Always run in detection mode first; audit logs are essential for tuning</li>
+        <li>Ship Coraza JSON audit logs to your SIEM for correlation with other security events</li>
+      </ul>
+
+    </article>
+
+    <footer class="article-footer">
+      <a href="../index.html" class="article-footer-back">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3M7 3L3 7L7 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back to portfolio
+      </a>
+      <a href="https://github.com/naveenkumar-sakthivel/traefik-coraza-k8s" target="_blank" rel="noopener noreferrer" class="article-github-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        View on GitHub
+      </a>
+    </footer>
+
+  </main>
+  <script src="../main.js" defer></script>
+</body>
+</html>
