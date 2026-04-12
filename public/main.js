@@ -13,6 +13,7 @@ function handleScrollReveal() {
 
 window.addEventListener("scroll", handleScrollReveal);
 window.addEventListener("load", handleScrollReveal);
+document.addEventListener("DOMContentLoaded", handleScrollReveal);
 
 // Hover glow follow mouse
 document.addEventListener("mousemove", (e) => {
@@ -54,14 +55,11 @@ if (form) {
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
       const data = await response.json();
-
       if (!response.ok) throw new Error(data.message || "Failed to send message.");
 
       statusEl.textContent = data.message;
@@ -75,6 +73,7 @@ if (form) {
     }
   });
 }
+
 // Terminal simulation
 const terminalBody = document.getElementById("terminal-body");
 const terminalInput = document.getElementById("terminal-input");
@@ -100,7 +99,7 @@ if (terminalBody && terminalInput) {
     ],
     whoami: () => [
       "naveen",
-      "Naveen Kumar â€“ Junior DevOps Engineer (Chennai, India).",
+      "Naveen Kumar -- Junior DevOps Engineer (Chennai, India).",
       "I design and automate cloud-native infrastructure on Azure and AWS with Kubernetes, CI/CD and observability."
     ],
     skills: () => [
@@ -117,7 +116,7 @@ if (terminalBody && terminalInput) {
       "  Secure AKS + ECK platform with Traefik, cert-manager, GitHub Actions CI/CD."
     ],
     ls: () => [
-      "about  certifications  terminal  experience  skills  education  contact"
+      "about  certifications  terminal  experience  skills  education  blog  contact"
     ],
     pwd: () => [
       "/home/naveen/portfolio"
@@ -140,7 +139,6 @@ if (terminalBody && terminalInput) {
     terminalBody.scrollTop = terminalBody.scrollHeight;
   }
 
-  // Show banner on load
   bannerLines.forEach(line => appendLine(line));
 
   terminalInput.addEventListener("keydown", (e) => {
@@ -148,7 +146,6 @@ if (terminalBody && terminalInput) {
       const input = terminalInput.value.trim();
       if (!input) return;
 
-      // Echo command
       appendLine(`naveen@portfolio:~$ ${input}`, "cmd-line");
 
       const [cmd] = input.split(/\s+/);

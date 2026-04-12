@@ -41,8 +41,8 @@ body {
   box-shadow: 0 22px 55px rgba(0, 0, 0, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.03);
   overflow: hidden;
-  transform: translateY(12px) scale(0.98);
-  opacity: 0;
+  transform: translateY(0) scale(1);
+  opacity: 1;
   transition:
     transform 260ms ease,
     box-shadow 260ms ease,
@@ -51,12 +51,6 @@ body {
     opacity 260ms ease;
 }
 
-/* Reveal on scroll (JS adds .visible) */
-.card.visible,
-.hero-inner.visible {
-  transform: translateY(0) scale(1);
-  opacity: 1;
-}
 
 /* Hover: subtle lift + glow with mouse-follow highlight */
 @media (hover: hover) {
